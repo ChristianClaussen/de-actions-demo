@@ -1,12 +1,17 @@
-name: Claude OIDC Review
-on: [push, pull_request]
+name: Claude Code Review
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
 
 jobs:
-  claude-job:
+  claude-review:
     runs-on: ubuntu-latest
     permissions:
       id-token: write
       contents: read
+      pull-requests: write # Für Kommentare in Pull Requests
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
@@ -26,4 +31,6 @@ jobs:
           ANTHROPIC_TOKEN=$(echo $RESPONSE | jq -r '.access_token')
 
           npm install -g @anthropic-ai/claude-code
-          ANTHROPIC_API_KEY=$ANTHROPIC_TOKEN claude --version
+          
+          # Claude ausführen
+          ANTHROPIC_API_KEY=$ANTHROPIC_TOKEN claude "Analysiere den Code im Repository auf Fehler und Verbesserungsmöglichkeiten."
