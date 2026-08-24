@@ -1,0 +1,29 @@
+name: Claude OIDC Review
+on: [push, pull_request]
+
+jobs:
+  claude-job:
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Get OIDC Token & Exchange with Anthropic
+        run: |
+          OIDC_TOKEN=$(curl -sS -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" \
+            "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=https://api.anthropic.com" | jq -r '.value')
+
+          RESPONSE=$(curl -sS https://api.anthropic.com/v1/oauth/token \
+            -H "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "grant_type=urn:ietf:params:oauth:grant-type:token-exchange" \
+            --data-urlencode "requested_token_type=urn:ietf:params:oauth:token-type:access_token" \
+            --data-urlencode "subject_token=$OIDC_TOKEN" \
+            --data-urlencode "subject_token_type=urn:ietf:params:oauth:token-type:id_token")
+
+          ANTHROPIC_TOKEN=$(echo $RESPONSE | jq -r '.access_token')
+
+          npm install -g @anthropic-ai/claude-code
+          ANTHROPIC_API_KEY=$ANTHROPIC_TOKEN claude --version
